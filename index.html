@@ -7,22 +7,34 @@
 
 <style>
 body { font-family: sans-serif; padding:20px; }
-button { padding:10px; margin-top:10px; width:100%; }
-input { padding:10px; width:100%; margin-top:10px; }
+select, button, input { width:100%; padding:8px; margin-top:8px; }
 table { border-collapse: collapse; width:100%; margin-top:20px; }
-th, td { border:1px solid #ccc; padding:8px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+.alert { color:red; font-weight:bold; }
 .notice { color:red; margin-top:10px; }
 </style>
 </head>
-
 <body>
 
 <h2>留学生労働時間チェック</h2>
 
 <input type="file" id="csvFile" accept=".csv">
 
+<div id="mappingArea" style="display:none;">
+  <label>名前の列</label>
+  <select id="nameCol"></select>
+
+  <label>日付の列</label>
+  <select id="dateCol"></select>
+
+  <label>勤務時間の列</label>
+  <select id="hourCol"></select>
+
+  <button onclick="calculate()">計算する</button>
+</div>
+
 <div class="notice">
-現在、1名のみ表示中です。有料版で全従業員表示できます。
+無料版は1名のみ表示。有料版で全員表示可能。
 </div>
 
 <input type="password" id="pw" placeholder="有料版パスワード">
@@ -32,74 +44,92 @@ th, td { border:1px solid #ccc; padding:8px; }
 
 <script>
 
+let rawData = [];
+let headers = [];
 let isPaid = false;
-let allData = [];
 
 function unlockPro() {
-    const input = document.getElementById("pw").value;
-    if(input === "pro2026") {
-        isPaid = true;
-        alert("有料版が有効になりました");
-        renderTable();
-    } else {
-        alert("パスワードが違います");
-    }
+  if(document.getElementById("pw").value === "pro2026"){
+    isPaid = true;
+    alert("有料版が有効になりました");
+  } else {
+    alert("パスワードが違います");
+  }
 }
 
-document.getElementById("csvFile").addEventListener("change", function(event) {
+document.getElementById("csvFile").addEventListener("change", function(e){
 
-    const file = event.target.files[0];
+  Papa.parse(e.target.files[0], {
+    complete: function(results){
 
-    Papa.parse(file, {
-        complete: function(results) {
+      rawData = results.data;
+      headers = rawData[0];
 
-            const data = results.data;
-
-            if(data.length < 2) {
-                alert("データがありません");
-                return;
-            }
-
-            allData = data;
-            renderTable();
-        }
-    });
+      setupMapping();
+    }
+  });
 
 });
 
-function renderTable() {
+function setupMapping(){
 
-    if(allData.length === 0) return;
+  document.getElementById("mappingArea").style.display = "block";
 
-    const header = allData[0];
-    const rows = allData.slice(1);
+  const selects = ["nameCol","dateCol","hourCol"];
 
-    const table = document.getElementById("resultTable");
-    table.innerHTML = "";
+  selects.forEach(id=>{
+    const select = document.getElementById(id);
+    select.innerHTML = "";
+    headers.forEach((h,i)=>{
+      select.innerHTML += `<option value="${i}">${h}</option>`;
+    });
+  });
+}
 
-    let headerRow = "<tr>";
-    header.forEach(h => headerRow += "<th>" + h + "</th>");
-    headerRow += "</tr>";
+function calculate(){
 
-    let dataRows = "";
+  const nameIndex = document.getElementById("nameCol").value;
+  const hourIndex = document.getElementById("hourCol").value;
 
-    if(isPaid) {
-        rows.forEach(row => {
-            dataRows += "<tr>";
-            row.forEach(d => dataRows += "<td>" + d + "</td>");
-            dataRows += "</tr>";
-        });
-    } else {
-        const firstRow = rows[0];
-        dataRows += "<tr>";
-        firstRow.forEach(d => dataRows += "<td>" + d + "</td>");
-        dataRows += "</tr>";
-    }
+  const totals = {};
 
-    table.innerHTML = headerRow + dataRows;
+  rawData.slice(1).forEach(row=>{
+    const name = row[nameIndex];
+    const hours = parseFloat(row[hourIndex]) || 0;
+
+    if(!totals[name]) totals[name] = 0;
+    totals[name] += hours;
+  });
+
+  renderTable(totals);
+}
+
+function renderTable(totals){
+
+  const table = document.getElementById("resultTable");
+  table.innerHTML = "<tr><th>名前</th><th>月間合計時間</th><th>判定</th></tr>";
+
+  const names = Object.keys(totals);
+
+  const displayNames = isPaid ? names : names.slice(0,1);
+
+  displayNames.forEach(name=>{
+    const total = totals[name];
+    const over = total > 28;
+
+    table.innerHTML += `
+      <tr>
+        <td>${name}</td>
+        <td>${total}</td>
+        <td class="${over ? 'alert' : ''}">
+          ${over ? '⚠ 28時間超過' : 'OK'}
+        </td>
+      </tr>
+    `;
+  });
+
 }
 
 </script>
-
 </body>
 </html>
