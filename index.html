@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>シフト確認ツール</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body { font-family: sans-serif; padding:20px; }
+button { padding:10px; margin-top:10px; width:100%; }
+</style>
+</head>
+<body>
+
+<h2>留学生労働時間チェック</h2>
+
+<input type="file" id="csvFile">
+<br>
+<button onclick="generatePDF()">PDF出力</button>
+
+<script>
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text("テストPDF出力成功", 20, 20);
+  doc.save("report.pdf");
+}
+</script>
+
+</body>
+</html>
