@@ -2,15 +2,15 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>シフト確認ツール</title>
-
+<title>留学生労働時間チェック</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
 body { font-family: sans-serif; padding:20px; }
 button { padding:10px; margin-top:10px; width:100%; }
+input { padding:10px; width:100%; margin-top:10px; }
 table { border-collapse: collapse; width:100%; margin-top:20px; }
-th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+th, td { border:1px solid #ccc; padding:8px; }
 .notice { color:red; margin-top:10px; }
 </style>
 </head>
@@ -25,9 +25,26 @@ th, td { border:1px solid #ccc; padding:8px; text-align:left; }
 現在、1名のみ表示中です。有料版で全従業員表示できます。
 </div>
 
+<input type="password" id="pw" placeholder="有料版パスワード">
+<button onclick="unlockPro()">有料版を解除</button>
+
 <table id="resultTable"></table>
 
 <script>
+
+let isPaid = false;
+let allData = [];
+
+function unlockPro() {
+    const input = document.getElementById("pw").value;
+    if(input === "pro2026") {
+        isPaid = true;
+        alert("有料版が有効になりました");
+        renderTable();
+    } else {
+        alert("パスワードが違います");
+    }
+}
 
 document.getElementById("csvFile").addEventListener("change", function(event) {
 
@@ -43,28 +60,44 @@ document.getElementById("csvFile").addEventListener("change", function(event) {
                 return;
             }
 
-            const header = data[0];
-            const rows = data.slice(1);
-
-            // 1名だけ表示（無料制限）
-            const firstRow = rows[0];
-
-            const table = document.getElementById("resultTable");
-            table.innerHTML = "";
-
-            let headerRow = "<tr>";
-            header.forEach(h => headerRow += "<th>" + h + "</th>");
-            headerRow += "</tr>";
-
-            let dataRow = "<tr>";
-            firstRow.forEach(d => dataRow += "<td>" + d + "</td>");
-            dataRow += "</tr>";
-
-            table.innerHTML = headerRow + dataRow;
+            allData = data;
+            renderTable();
         }
     });
 
 });
+
+function renderTable() {
+
+    if(allData.length === 0) return;
+
+    const header = allData[0];
+    const rows = allData.slice(1);
+
+    const table = document.getElementById("resultTable");
+    table.innerHTML = "";
+
+    let headerRow = "<tr>";
+    header.forEach(h => headerRow += "<th>" + h + "</th>");
+    headerRow += "</tr>";
+
+    let dataRows = "";
+
+    if(isPaid) {
+        rows.forEach(row => {
+            dataRows += "<tr>";
+            row.forEach(d => dataRows += "<td>" + d + "</td>");
+            dataRows += "</tr>";
+        });
+    } else {
+        const firstRow = rows[0];
+        dataRows += "<tr>";
+        firstRow.forEach(d => dataRows += "<td>" + d + "</td>");
+        dataRows += "</tr>";
+    }
+
+    table.innerHTML = headerRow + dataRows;
+}
 
 </script>
 
